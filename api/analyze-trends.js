@@ -257,9 +257,9 @@ class RealSocialMediaAPI {
         console.log(`🔍 Raw Reddit hashtags collected: ${hashtags.length}`);
         console.log(`📝 Sample hashtags:`, hashtags.slice(0, 3).map(h => ({ tag: h.tag, engagement: h.engagement })));
         
-        // Limit hashtags for Vercel timeout constraints
-        const limitedHashtags = hashtags.slice(0, 5);
-        console.log(`🤖 Starting AI analysis for ${limitedHashtags.length} Reddit hashtags (limited for Vercel)...`);
+        // Limit hashtags for Vercel timeout and Groq rate limit constraints
+        const limitedHashtags = hashtags.slice(0, 3);
+        console.log(`🤖 Starting AI analysis for ${limitedHashtags.length} Reddit hashtags (limited for rate limits)...`);
         const processedHashtags = await this.analyzeRedditData(limitedHashtags);
         console.log(`✅ AI analysis complete: ${processedHashtags.length} processed hashtags`);
         
@@ -524,9 +524,28 @@ class RealSocialMediaAPI {
             }
         });
 
-        console.log(`⏳ Waiting for ${hashtagPromises.length} AI analysis promises...`);
-        const results = await Promise.all(hashtagPromises);
-        console.log(`✅ AI analysis complete: ${results.length} Reddit hashtags processed successfully`);
+        console.log(`⏳ Processing ${hashtagPromises.length} hashtags SEQUENTIALLY to avoid rate limits...`);
+        const results = [];
+        
+        for (let i = 0; i < hashtagPromises.length; i++) {
+            console.log(`🔄 Processing hashtag ${i + 1}/${hashtagPromises.length}...`);
+            try {
+                const result = await hashtagPromises[i];
+                results.push(result);
+                console.log(`✅ Hashtag ${i + 1} processed successfully`);
+                
+                // Add delay between API calls to avoid rate limits
+                if (i < hashtagPromises.length - 1) {
+                    console.log(`⏰ Waiting 2 seconds before next API call...`);
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+            } catch (error) {
+                console.error(`❌ Hashtag ${i + 1} failed:`, error.message);
+                throw error; // Still fail fast as requested
+            }
+        }
+        
+        console.log(`✅ Sequential AI analysis complete: ${results.length} Reddit hashtags processed successfully`);
         console.log(`📊 Sample processed hashtag:`, {
             tag: results[0]?.tag,
             engagement: results[0]?.engagement,
@@ -539,85 +558,109 @@ class RealSocialMediaAPI {
     }
 
     async analyzeHackerNewsData(hashtags) {
-        const uniqueHashtags = this.consolidateHashtags(hashtags);
-        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} Hacker News hashtags...`);
+        const uniqueHashtags = this.consolidateHashtags(hashtags).slice(0, 3); // Limit for rate limits
+        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} Hacker News hashtags (rate limit safe)...`);
 
         if (!process.env.GROQ_API_KEY) {
             throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
-        const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
-            console.log(`🤖 Analyzing Hacker News hashtag: #${hashtag.tag}`);
+        const results = [];
+        
+        for (let i = 0; i < uniqueHashtags.length; i++) {
+            const hashtag = uniqueHashtags[i];
+            console.log(`🤖 [${i + 1}/${uniqueHashtags.length}] Analyzing Hacker News hashtag: #${hashtag.tag}`);
             
             const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Hacker News');
-            console.log(`✅ AI context received for #${hashtag.tag}`);
+            console.log(`✅ [${i + 1}/${uniqueHashtags.length}] AI context received for #${hashtag.tag}`);
             
-            return {
+            results.push({
                 ...hashtag,
                 context: aiAnalysis.context,
                 usage: aiAnalysis.usage,
                 description: aiAnalysis.description
-            };
-        });
+            });
+            
+            // Add delay between API calls
+            if (i < uniqueHashtags.length - 1) {
+                console.log(`⏰ Waiting 2 seconds before next API call...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
 
-        const results = await Promise.all(hashtagPromises);
         console.log(`✅ Processed ${results.length} Hacker News hashtags with AI analysis`);
         return results;
     }
 
     async analyzeYouTubeData(hashtags) {
-        const uniqueHashtags = this.consolidateHashtags(hashtags);
-        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} YouTube hashtags...`);
+        const uniqueHashtags = this.consolidateHashtags(hashtags).slice(0, 3); // Limit for rate limits
+        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} YouTube hashtags (rate limit safe)...`);
 
         if (!process.env.GROQ_API_KEY) {
             throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
-        const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
-            console.log(`🤖 Analyzing YouTube hashtag: #${hashtag.tag}`);
+        const results = [];
+        
+        for (let i = 0; i < uniqueHashtags.length; i++) {
+            const hashtag = uniqueHashtags[i];
+            console.log(`🤖 [${i + 1}/${uniqueHashtags.length}] Analyzing YouTube hashtag: #${hashtag.tag}`);
             
             const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'YouTube');
-            console.log(`✅ AI context received for #${hashtag.tag}`);
+            console.log(`✅ [${i + 1}/${uniqueHashtags.length}] AI context received for #${hashtag.tag}`);
             
-            return {
+            results.push({
                 ...hashtag,
                 context: aiAnalysis.context,
                 usage: aiAnalysis.usage,
                 description: aiAnalysis.description
-            };
-        });
+            });
+            
+            // Add delay between API calls
+            if (i < uniqueHashtags.length - 1) {
+                console.log(`⏰ Waiting 2 seconds before next API call...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
 
-        const results = await Promise.all(hashtagPromises);
         console.log(`✅ Processed ${results.length} YouTube hashtags with AI analysis`);
         return results;
     }
 
     async analyzeNewsHashtags(hashtags) {
-        const uniqueHashtags = this.consolidateHashtags(hashtags);
-        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} News hashtags...`);
+        const uniqueHashtags = this.consolidateHashtags(hashtags).slice(0, 3); // Limit for rate limits
+        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} News hashtags (rate limit safe)...`);
 
         if (!process.env.GROQ_API_KEY) {
             throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
-        const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
-            console.log(`🤖 Analyzing News hashtag: #${hashtag.tag}`);
+        const results = [];
+        
+        for (let i = 0; i < uniqueHashtags.length; i++) {
+            const hashtag = uniqueHashtags[i];
+            console.log(`🤖 [${i + 1}/${uniqueHashtags.length}] Analyzing News hashtag: #${hashtag.tag}`);
             
             const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Indian News');
-            console.log(`✅ AI context received for #${hashtag.tag}`);
+            console.log(`✅ [${i + 1}/${uniqueHashtags.length}] AI context received for #${hashtag.tag}`);
             
-            return {
+            results.push({
                 ...hashtag,
                 context: aiAnalysis.context,
                 usage: aiAnalysis.usage,
                 description: aiAnalysis.description
-            };
-        });
+            });
+            
+            // Add delay between API calls
+            if (i < uniqueHashtags.length - 1) {
+                console.log(`⏰ Waiting 2 seconds before next API call...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        }
 
-        const results = await Promise.all(hashtagPromises);
         console.log(`✅ Processed ${results.length} News hashtags with AI analysis`);
         return results;
     }
