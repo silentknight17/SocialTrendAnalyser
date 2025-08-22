@@ -10,7 +10,7 @@
     "vercel-build": "npm run build",
     "deploy": "vercel --prod",
     "preview": "vercel",
-    "start-realtime": "node index.js",
+    "start-realtime": "node api/index.js",
     "start-mock": "node server.js",
     "start-basic": "node real-ai-server.js"
   },
