@@ -199,8 +199,12 @@ class RealSocialMediaAPI {
         for (const subreddit of subreddits.slice(0, 2)) {
             try {
                 const response = await axios.get(`https://www.reddit.com/r/${subreddit}/hot.json?limit=10`, {
-                    headers: { 'User-Agent': 'TrendAnalyzer/1.0' },
-                    timeout: 10000
+                    headers: { 
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Accept': 'application/json',
+                        'Accept-Language': 'en-US,en;q=0.9'
+                    },
+                    timeout: 15000
                 });
 
                 const posts = response.data?.data?.children || [];
