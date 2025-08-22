@@ -1,0 +1,34 @@
+{
+  "name": "social-media-trends",
+  "version": "1.0.0",
+  "description": "AI-powered social media trends analyzer and message generator",
+  "main": "ai-powered-server.js",
+  "scripts": {
+    "start": "node ai-powered-server.js",
+    "dev": "nodemon ai-powered-server.js",
+    "build": "echo 'Build completed successfully'",
+    "vercel-build": "npm run build",
+    "deploy": "vercel --prod",
+    "preview": "vercel",
+    "start-realtime": "node ai-powered-server.js",
+    "start-mock": "node server.js",
+    "start-basic": "node real-ai-server.js"
+  },
+  "keywords": ["social-media", "trending", "ai", "hackathon"],
+  "author": "Your Name",
+  "license": "MIT",
+      "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5",
+        "body-parser": "^1.20.2",
+        "axios": "^1.6.2",
+        "node-cron": "^3.0.2",
+        "cheerio": "^1.0.0-rc.12",
+        "sentiment": "^5.0.2",
+        "natural": "^6.7.0",
+        "node-fetch": "^2.7.0"
+    },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

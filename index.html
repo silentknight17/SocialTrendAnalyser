@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SocialTrend AI - Trending Hashtags & AI Messages</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1><i class="fas fa-chart-line"></i> SocialTrend AI</h1>
+            <p>Discover trending hashtags and generate viral business content</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Step 1: Trending Analysis -->
+            <section class="card" id="trends-section">
+                <h2><i class="fas fa-fire"></i> Step 1: Analyze Trending Content</h2>
+                <div class="platforms">
+                    <label class="platform-checkbox">
+                        <input type="checkbox" name="platform" value="reddit" checked>
+                        <span class="platform-label"><i class="fab fa-reddit"></i> Reddit</span>
+                    </label>
+                    <label class="platform-checkbox">
+                        <input type="checkbox" name="platform" value="hackernews" checked>
+                        <span class="platform-label"><i class="fab fa-hacker-news"></i> Hacker News</span>
+                    </label>
+                    <label class="platform-checkbox">
+                        <input type="checkbox" name="platform" value="youtube" checked>
+                        <span class="platform-label"><i class="fab fa-youtube"></i> YouTube</span>
+                    </label>
+                    <label class="platform-checkbox">
+                        <input type="checkbox" name="platform" value="news" checked>
+                        <span class="platform-label"><i class="fas fa-newspaper"></i> News</span>
+                    </label>
+                </div>
+                <button class="btn btn-primary" id="analyze-trends">
+                    <i class="fas fa-search"></i> Analyze Trending Topics
+                </button>
+                <div class="loading" id="loading-trends" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Analyzing trending topics from selected platforms...
+                </div>
+            </section>
+
+            <!-- Trending Results -->
+            <section class="card" id="results-section" style="display: none;">
+                <h2><i class="fas fa-trophy"></i> Trending Analysis Results</h2>
+                <div class="results-grid">
+                    <div class="trending-hashtags">
+                        <h3><i class="fas fa-hashtag"></i> Top Trending Hashtags</h3>
+                        <div class="select-all-section">
+                            <button class="btn btn-small" id="select-all-hashtags">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button class="btn btn-small" id="clear-hashtags">
+                                <i class="fas fa-times"></i> Clear All
+                            </button>
+                        </div>
+                        <ul id="hashtags-list" class="selectable-list"></ul>
+                        
+                        <!-- Hashtag Context Panel -->
+                        <div id="hashtag-context" class="context-panel" style="display: none;">
+                            <div class="context-header">
+                                <h4><i class="fas fa-info-circle"></i> <span id="context-hashtag"></span></h4>
+                                <button id="close-context" class="close-context-btn">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="context-content">
+                                <div class="context-badge-row">
+                                    <span id="context-description" class="context-badge"></span>
+                                    <span id="context-engagement" class="engagement-badge"></span>
+                                </div>
+                                <div class="context-section">
+                                    <h5><i class="fas fa-lightbulb"></i> What is this trend?</h5>
+                                    <p id="context-explanation"></p>
+                                </div>
+                                <div class="context-section">
+                                    <h5><i class="fas fa-rocket"></i> How to use it for your business?</h5>
+                                    <p id="context-usage"></p>
+                                </div>
+                                <div class="context-footer">
+                                    <span id="context-platform" class="platform-badge"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="trending-themes">
+                        <h3><i class="fas fa-lightbulb"></i> Popular Themes</h3>
+                        <div class="select-all-section">
+                            <button class="btn btn-small" id="select-all-themes">
+                                <i class="fas fa-check-double"></i> Select All
+                            </button>
+                            <button class="btn btn-small" id="clear-themes">
+                                <i class="fas fa-times"></i> Clear All
+                            </button>
+                        </div>
+                        <ul id="themes-list" class="selectable-list"></ul>
+                    </div>
+                </div>
+                <div class="engagement-metrics">
+                    <h3><i class="fas fa-chart-bar"></i> Engagement Insights</h3>
+                    <div id="metrics-display"></div>
+                </div>
+                <div class="selected-summary">
+                    <h3><i class="fas fa-check-circle"></i> Selected for AI Generation</h3>
+                    <div class="selected-items">
+                        <div class="selected-hashtags">
+                            <strong>Hashtags:</strong> <span id="selected-hashtags-display">None selected</span>
+                        </div>
+                        <div class="selected-themes">
+                            <strong>Themes:</strong> <span id="selected-themes-display">None selected</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Step 2: AI Message Generation -->
+            <section class="card" id="message-section" style="display: none;">
+                <h2><i class="fas fa-robot"></i> Step 2: Generate AI-Powered Content</h2>
+                <div class="input-group">
+                    <label for="business-input">
+                        <i class="fas fa-building"></i> Your Business/Brand Name:
+                    </label>
+                    <input 
+                        type="text" 
+                        id="business-input" 
+                        placeholder="e.g., Jeevansathi, McDonald's, Nike..."
+                        maxlength="50"
+                    >
+                </div>
+                <div class="input-group">
+                    <label for="business-type">
+                        <i class="fas fa-industry"></i> Business Type/Industry:
+                    </label>
+                    <select id="business-type">
+                        <option value="">Select your industry...</option>
+                        <option value="dating-matrimony">Dating & Matrimony</option>
+                        <option value="food-beverage">Food & Beverage</option>
+                        <option value="fashion-lifestyle">Fashion & Lifestyle</option>
+                        <option value="technology">Technology</option>
+                        <option value="healthcare">Healthcare</option>
+                        <option value="education">Education</option>
+                        <option value="entertainment">Entertainment</option>
+                        <option value="finance">Finance</option>
+                        <option value="travel">Travel</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="tone-select">
+                        <i class="fas fa-palette"></i> Content Tone:
+                    </label>
+                    <select id="tone-select">
+                        <option value="quirky">Quirky & Fun</option>
+                        <option value="professional">Professional</option>
+                        <option value="casual">Casual & Friendly</option>
+                        <option value="humorous">Humorous</option>
+                        <option value="inspirational">Inspirational</option>
+                    </select>
+                </div>
+                <button class="btn btn-secondary" id="generate-message">
+                    <i class="fas fa-magic"></i> Generate AI Content
+                </button>
+                <div class="loading" id="loading-message" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> AI is crafting your viral content...
+                </div>
+            </section>
+
+            <!-- Generated Messages -->
+            <section class="card" id="generated-section" style="display: none;">
+                <h2><i class="fas fa-clipboard-list"></i> Your AI-Generated Content</h2>
+                <div id="generated-messages"></div>
+                <div class="action-buttons">
+                    <button class="btn btn-success" id="copy-all">
+                        <i class="fas fa-copy"></i> Copy All Messages
+                    </button>
+                    <button class="btn btn-primary" id="regenerate">
+                        <i class="fas fa-redo"></i> Generate New Variations
+                    </button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Built with ❤️ | Copyright © 2025 Sarvagya Prateek</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
+
