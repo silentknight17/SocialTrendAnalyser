@@ -239,9 +239,11 @@ class SocialTrendAI {
         
         trends.themes.forEach((theme, index) => {
             const li = document.createElement('li');
+            // Convert weight to percentage (weight is normalized 0-1, so multiply by 100)
+            const popularityPercent = Math.round((theme.weight || 0) * 100);
             li.innerHTML = `
                 <span>${theme.name}</span>
-                <span class="engagement-count">${theme.popularity}%</span>
+                <span class="engagement-count">${popularityPercent}%</span>
             `;
             li.style.animationDelay = `${index * 0.1}s`;
             li.classList.add('slide-in');
