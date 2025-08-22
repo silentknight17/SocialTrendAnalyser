@@ -1,7 +1,15 @@
 {
+  "buildCommand": "npm run build",
+  "outputDirectory": "public",
   "functions": {
-    "api/index.js": {
+    "api/analyze-trends.js": {
       "maxDuration": 30
+    },
+    "api/generate-message.js": {
+      "maxDuration": 30
+    },
+    "api/health.js": {
+      "maxDuration": 10
     }
   }
 }
