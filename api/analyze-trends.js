@@ -71,7 +71,7 @@ Important: Focus on why this hashtag is trending RIGHT NOW in the past 24-48 hou
                         'Authorization': `Bearer ${GROQ_API_KEY}`,
                         'Content-Type': 'application/json'
                     },
-                    timeout: 30000
+                    timeout: 15000
                 });
 
                 const analysis = response.data.choices[0]?.message?.content;
@@ -216,9 +216,9 @@ class RealSocialMediaAPI {
         const subreddits = ['all', 'popular', 'AskReddit', 'worldnews', 'technology'];
         const hashtags = [];
 
-        for (const subreddit of subreddits.slice(0, 2)) {
+        for (const subreddit of subreddits.slice(0, 1)) {
             try {
-                const response = await axios.get(`https://www.reddit.com/r/${subreddit}/hot.json?limit=10`, {
+                const response = await axios.get(`https://www.reddit.com/r/${subreddit}/hot.json?limit=5`, {
                     headers: { 
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                         'Accept': 'application/json',
@@ -257,8 +257,10 @@ class RealSocialMediaAPI {
         console.log(`🔍 Raw Reddit hashtags collected: ${hashtags.length}`);
         console.log(`📝 Sample hashtags:`, hashtags.slice(0, 3).map(h => ({ tag: h.tag, engagement: h.engagement })));
         
-        console.log(`🤖 Starting AI analysis for ${hashtags.length} Reddit hashtags...`);
-        const processedHashtags = await this.analyzeRedditData(hashtags);
+        // Limit hashtags for Vercel timeout constraints
+        const limitedHashtags = hashtags.slice(0, 5);
+        console.log(`🤖 Starting AI analysis for ${limitedHashtags.length} Reddit hashtags (limited for Vercel)...`);
+        const processedHashtags = await this.analyzeRedditData(limitedHashtags);
         console.log(`✅ AI analysis complete: ${processedHashtags.length} processed hashtags`);
         
         const themes = this.extractThemes(processedHashtags, 'reddit');
