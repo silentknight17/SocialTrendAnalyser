@@ -665,22 +665,35 @@ module.exports = async function handler(req, res) {
         return res.status(200).end();
     }
 
-    if (req.method !== 'GET') {
+    if (req.method !== 'GET' && req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const selectedPlatforms = req.query.platforms 
-            ? req.query.platforms.split(',') 
-            : ['reddit', 'hackernews'];
+        let selectedPlatforms;
+        
+        if (req.method === 'POST') {
+            // For POST requests, get platforms from request body
+            selectedPlatforms = req.body?.platforms || ['reddit', 'hackernews'];
+        } else {
+            // For GET requests, get platforms from query parameters
+            selectedPlatforms = req.query.platforms 
+                ? req.query.platforms.split(',') 
+                : ['reddit', 'hackernews'];
+        }
 
         const api = new RealSocialMediaAPI();
         const trends = await api.getTrendsForPlatforms(selectedPlatforms);
 
-        res.status(200).json(trends);
+        res.status(200).json({
+            success: true,
+            trends: trends,
+            timestamp: new Date().toISOString()
+        });
     } catch (error) {
         console.error('API Error:', error);
         res.status(500).json({ 
+            success: false,
             error: 'Failed to analyze trends',
             message: error.message 
         });
