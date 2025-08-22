@@ -138,86 +138,32 @@ class RealSocialMediaAPI {
 
             if (platforms.includes('reddit')) {
                 console.log('Fetching Reddit trends...');
-                apiPromises.push(
-                    this.fetchRedditTrends()
-                        .then(result => {
-                            console.log(`✅ Reddit API success: ${result.hashtags.length} hashtags`);
-                            return result;
-                        })
-                        .catch(error => {
-                            console.error('❌ Reddit API error:', error.message);
-                            return { hashtags: [], themes: [] };
-                        })
-                );
+                apiPromises.push(this.fetchRedditTrends());
             }
 
             if (platforms.includes('hackernews')) {
                 console.log('Fetching Hacker News trends...');
-                apiPromises.push(
-                    this.fetchHackerNewsTrends()
-                        .then(result => {
-                            console.log(`✅ Hacker News API success: ${result.hashtags.length} hashtags`);
-                            return result;
-                        })
-                        .catch(error => {
-                            console.error('❌ Hacker News API error:', error.message);
-                            return { hashtags: [], themes: [] };
-                        })
-                );
+                apiPromises.push(this.fetchHackerNewsTrends());
             }
 
             if (platforms.includes('youtube')) {
                 console.log('Fetching YouTube trends...');
-                apiPromises.push(
-                    this.fetchYouTubeTrends()
-                        .then(result => {
-                            console.log(`✅ YouTube API success: ${result.hashtags.length} hashtags`);
-                            return result;
-                        })
-                        .catch(error => {
-                            console.error('❌ YouTube API error:', error.message);
-                            return { hashtags: [], themes: [] };
-                        })
-                );
+                apiPromises.push(this.fetchYouTubeTrends());
             }
 
             if (platforms.includes('news')) {
                 console.log('Fetching News trends...');
-                apiPromises.push(
-                    this.fetchNewsTrends()
-                        .then(result => {
-                            console.log(`✅ News API success: ${result.hashtags.length} hashtags`);
-                            return result;
-                        })
-                        .catch(error => {
-                            console.error('❌ News API error:', error.message);
-                            return { hashtags: [], themes: [] };
-                        })
-                );
+                apiPromises.push(this.fetchNewsTrends());
             }
 
             console.log(`🚀 Starting ${apiPromises.length} API calls in parallel...`);
-            const results = await Promise.allSettled(apiPromises);
+            const results = await Promise.all(apiPromises);
             console.log(`📊 API calls completed: ${results.length} results`);
-
-            const validResults = results
-                .map((result, index) => {
-                    if (result.status === 'fulfilled') {
-                        console.log(`✅ Result ${index}: ${result.value.hashtags?.length || 0} hashtags`);
-                        return result.value;
-                    } else {
-                        console.error(`❌ Result ${index} failed:`, result.reason?.message || 'Unknown error');
-                        return { hashtags: [], themes: [] };
-                    }
-                })
-                .filter(value => value !== null);
-
-            console.log(`🔍 Processing ${validResults.length} valid results...`);
 
             const combinedHashtags = [];
             const combinedThemes = [];
 
-            validResults.forEach((result, index) => {
+            results.forEach((result, index) => {
                 console.log(`📝 Processing result ${index}: ${result.hashtags?.length || 0} hashtags, ${result.themes?.length || 0} themes`);
                 if (result.hashtags) combinedHashtags.push(...result.hashtags);
                 if (result.themes) combinedThemes.push(...result.themes);
@@ -504,122 +450,56 @@ class RealSocialMediaAPI {
         const uniqueHashtags = this.consolidateHashtags(hashtags);
         console.log(`🚀 Generating AI context for ${uniqueHashtags.length} Reddit hashtags...`);
 
-        // If no GROQ API key, return basic hashtags without AI context
         if (!process.env.GROQ_API_KEY) {
-            console.log(`⚠️ No GROQ API key found, returning basic hashtags without AI context`);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is currently trending on Reddit with ${hashtag.engagement} engagement points.`,
-                usage: `Use #${hashtag.tag} when creating content related to current Reddit discussions and trends.`,
-                description: `📊 ${hashtag.tag} Trending on Reddit`
-            }));
+            throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
         const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
             console.log(`🤖 Analyzing Reddit hashtag: #${hashtag.tag}`);
             
-            try {
-                const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Reddit');
-                console.log(`✅ AI context received for #${hashtag.tag}`);
-                
-                return {
-                    ...hashtag,
-                    context: aiAnalysis.context,
-                    usage: aiAnalysis.usage,
-                    description: aiAnalysis.description
-                };
-            } catch (error) {
-                console.log(`❌ AI failed for #${hashtag.tag}, using fallback: ${error.message}`);
-                
-                // Return basic hashtag with fallback content instead of throwing
-                return {
-                    ...hashtag,
-                    context: `#${hashtag.tag} is currently trending on Reddit with ${hashtag.engagement} engagement points.`,
-                    usage: `Use #${hashtag.tag} when creating content related to current Reddit discussions and trends.`,
-                    description: `📊 ${hashtag.tag} Trending on Reddit`
-                };
-            }
+            const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Reddit');
+            console.log(`✅ AI context received for #${hashtag.tag}`);
+            
+            return {
+                ...hashtag,
+                context: aiAnalysis.context,
+                usage: aiAnalysis.usage,
+                description: aiAnalysis.description
+            };
         });
 
-        try {
-            const results = await Promise.allSettled(hashtagPromises);
-            const processedHashtags = results
-                .filter(result => result.status === 'fulfilled')
-                .map(result => result.value);
-            
-            console.log(`✅ Processed ${processedHashtags.length} Reddit hashtags`);
-            return processedHashtags;
-        } catch (error) {
-            console.error('❌ Error analyzing Reddit hashtags:', error);
-            // Return basic hashtags as fallback
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is currently trending on Reddit.`,
-                usage: `Use #${hashtag.tag} for current Reddit trends.`,
-                description: `📊 ${hashtag.tag} Trending`
-            }));
-        }
+        const results = await Promise.all(hashtagPromises);
+        console.log(`✅ Processed ${results.length} Reddit hashtags with AI analysis`);
+        return results;
     }
 
     async analyzeHackerNewsData(hashtags) {
         const uniqueHashtags = this.consolidateHashtags(hashtags);
         console.log(`🚀 Generating AI context for ${uniqueHashtags.length} Hacker News hashtags...`);
 
-        // If no GROQ API key, return basic hashtags without AI context
         if (!process.env.GROQ_API_KEY) {
-            console.log(`⚠️ No GROQ API key found, returning basic hashtags without AI context`);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is currently trending on Hacker News with ${hashtag.engagement} engagement points.`,
-                usage: `Use #${hashtag.tag} when creating tech content related to current Hacker News discussions.`,
-                description: `💻 ${hashtag.tag} Trending on Hacker News`
-            }));
+            throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
         const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
             console.log(`🤖 Analyzing Hacker News hashtag: #${hashtag.tag}`);
             
-            try {
-                const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Hacker News');
-                console.log(`✅ AI context received for #${hashtag.tag}`);
-                
-                return {
-                    ...hashtag,
-                    context: aiAnalysis.context,
-                    usage: aiAnalysis.usage,
-                    description: aiAnalysis.description
-                };
-            } catch (error) {
-                console.log(`❌ AI failed for #${hashtag.tag}, using fallback: ${error.message}`);
-                
-                return {
-                    ...hashtag,
-                    context: `#${hashtag.tag} is currently trending on Hacker News with ${hashtag.engagement} engagement points.`,
-                    usage: `Use #${hashtag.tag} when creating tech content related to current Hacker News discussions.`,
-                    description: `💻 ${hashtag.tag} Trending on Hacker News`
-                };
-            }
+            const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Hacker News');
+            console.log(`✅ AI context received for #${hashtag.tag}`);
+            
+            return {
+                ...hashtag,
+                context: aiAnalysis.context,
+                usage: aiAnalysis.usage,
+                description: aiAnalysis.description
+            };
         });
 
-        try {
-            const results = await Promise.allSettled(hashtagPromises);
-            const processedHashtags = results
-                .filter(result => result.status === 'fulfilled')
-                .map(result => result.value);
-            
-            console.log(`✅ Processed ${processedHashtags.length} Hacker News hashtags`);
-            return processedHashtags;
-        } catch (error) {
-            console.error('❌ Error analyzing Hacker News hashtags:', error);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is trending on Hacker News.`,
-                usage: `Use #${hashtag.tag} for tech trends.`,
-                description: `💻 ${hashtag.tag} Tech Trending`
-            }));
-        }
+        const results = await Promise.all(hashtagPromises);
+        console.log(`✅ Processed ${results.length} Hacker News hashtags with AI analysis`);
+        return results;
     }
 
     async analyzeYouTubeData(hashtags) {
@@ -627,58 +507,27 @@ class RealSocialMediaAPI {
         console.log(`🚀 Generating AI context for ${uniqueHashtags.length} YouTube hashtags...`);
 
         if (!process.env.GROQ_API_KEY) {
-            console.log(`⚠️ No GROQ API key found, returning basic hashtags without AI context`);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is currently trending on YouTube with ${hashtag.engagement} views.`,
-                usage: `Use #${hashtag.tag} when creating video content related to current YouTube trends.`,
-                description: `🎬 ${hashtag.tag} Trending on YouTube`
-            }));
+            throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
         const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
             console.log(`🤖 Analyzing YouTube hashtag: #${hashtag.tag}`);
             
-            try {
-                const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'YouTube');
-                console.log(`✅ AI context received for #${hashtag.tag}`);
-                
-                return {
-                    ...hashtag,
-                    context: aiAnalysis.context,
-                    usage: aiAnalysis.usage,
-                    description: aiAnalysis.description
-                };
-            } catch (error) {
-                console.log(`❌ AI failed for #${hashtag.tag}, using fallback: ${error.message}`);
-                
-                return {
-                    ...hashtag,
-                    context: `#${hashtag.tag} is currently trending on YouTube with ${hashtag.engagement} views.`,
-                    usage: `Use #${hashtag.tag} when creating video content related to current YouTube trends.`,
-                    description: `🎬 ${hashtag.tag} Trending on YouTube`
-                };
-            }
+            const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'YouTube');
+            console.log(`✅ AI context received for #${hashtag.tag}`);
+            
+            return {
+                ...hashtag,
+                context: aiAnalysis.context,
+                usage: aiAnalysis.usage,
+                description: aiAnalysis.description
+            };
         });
 
-        try {
-            const results = await Promise.allSettled(hashtagPromises);
-            const processedHashtags = results
-                .filter(result => result.status === 'fulfilled')
-                .map(result => result.value);
-            
-            console.log(`✅ Processed ${processedHashtags.length} YouTube hashtags`);
-            return processedHashtags;
-        } catch (error) {
-            console.error('❌ Error analyzing YouTube hashtags:', error);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is trending on YouTube.`,
-                usage: `Use #${hashtag.tag} for video content.`,
-                description: `🎬 ${hashtag.tag} Video Trending`
-            }));
-        }
+        const results = await Promise.all(hashtagPromises);
+        console.log(`✅ Processed ${results.length} YouTube hashtags with AI analysis`);
+        return results;
     }
 
     async analyzeNewsHashtags(hashtags) {
@@ -686,58 +535,27 @@ class RealSocialMediaAPI {
         console.log(`🚀 Generating AI context for ${uniqueHashtags.length} News hashtags...`);
 
         if (!process.env.GROQ_API_KEY) {
-            console.log(`⚠️ No GROQ API key found, returning basic hashtags without AI context`);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is currently in the news with ${hashtag.engagement} engagement.`,
-                usage: `Use #${hashtag.tag} when creating content related to current news topics.`,
-                description: `📰 ${hashtag.tag} Trending in News`
-            }));
+            throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
 
         const aiContextService = new AIContextService();
         const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
             console.log(`🤖 Analyzing News hashtag: #${hashtag.tag}`);
             
-            try {
-                const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Indian News');
-                console.log(`✅ AI context received for #${hashtag.tag}`);
-                
-                return {
-                    ...hashtag,
-                    context: aiAnalysis.context,
-                    usage: aiAnalysis.usage,
-                    description: aiAnalysis.description
-                };
-            } catch (error) {
-                console.log(`❌ AI failed for #${hashtag.tag}, using fallback: ${error.message}`);
-                
-                return {
-                    ...hashtag,
-                    context: `#${hashtag.tag} is currently in the news with ${hashtag.engagement} engagement.`,
-                    usage: `Use #${hashtag.tag} when creating content related to current news topics.`,
-                    description: `📰 ${hashtag.tag} Trending in News`
-                };
-            }
+            const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Indian News');
+            console.log(`✅ AI context received for #${hashtag.tag}`);
+            
+            return {
+                ...hashtag,
+                context: aiAnalysis.context,
+                usage: aiAnalysis.usage,
+                description: aiAnalysis.description
+            };
         });
 
-        try {
-            const results = await Promise.allSettled(hashtagPromises);
-            const processedHashtags = results
-                .filter(result => result.status === 'fulfilled')
-                .map(result => result.value);
-            
-            console.log(`✅ Processed ${processedHashtags.length} News hashtags`);
-            return processedHashtags;
-        } catch (error) {
-            console.error('❌ Error analyzing News hashtags:', error);
-            return uniqueHashtags.map(hashtag => ({
-                ...hashtag,
-                context: `#${hashtag.tag} is trending in news.`,
-                usage: `Use #${hashtag.tag} for news content.`,
-                description: `📰 ${hashtag.tag} News Trending`
-            }));
-        }
+        const results = await Promise.all(hashtagPromises);
+        console.log(`✅ Processed ${results.length} News hashtags with AI analysis`);
+        return results;
     }
 
     consolidateHashtags(hashtags) {

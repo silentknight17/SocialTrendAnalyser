@@ -207,7 +207,7 @@ class SocialTrendAI {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span class="hashtag-tag">#${hashtag.tag}</span>
-                <span class="engagement-count">${hashtag.engagement.toLocaleString()}</span>
+                <span class="engagement-count">${(hashtag.engagement || 0).toLocaleString()}</span>
                 <button class="hashtag-info-btn" title="Learn about this trend">
                     <i class="fas fa-info"></i>
                 </button>
@@ -490,7 +490,7 @@ class SocialTrendAI {
         document.getElementById('context-description').textContent = hashtag.description || `📊 ${hashtag.tag} Trending`;
         document.getElementById('context-explanation').textContent = hashtag.context || 'Currently trending topic being discussed across social media platforms.';
         document.getElementById('context-usage').textContent = hashtag.usage || `Use when your content relates to ${hashtag.tag} or when targeting audiences interested in this topic.`;
-        document.getElementById('context-engagement').textContent = `${hashtag.engagement.toLocaleString()} engagements`;
+        document.getElementById('context-engagement').textContent = `${(hashtag.engagement || 0).toLocaleString()} engagements`;
         document.getElementById('context-platform').textContent = hashtag.platform;
 
         // Show the context panel
