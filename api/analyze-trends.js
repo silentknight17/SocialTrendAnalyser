@@ -164,9 +164,29 @@ class RealSocialMediaAPI {
             const combinedThemes = [];
 
             results.forEach((result, index) => {
-                console.log(`📝 Processing result ${index}: ${result.hashtags?.length || 0} hashtags, ${result.themes?.length || 0} themes`);
-                if (result.hashtags) combinedHashtags.push(...result.hashtags);
-                if (result.themes) combinedThemes.push(...result.themes);
+                console.log(`📝 Processing result ${index}:`, JSON.stringify({
+                    hashtagsLength: result.hashtags?.length || 0,
+                    themesLength: result.themes?.length || 0,
+                    hasHashtags: !!result.hashtags,
+                    hasThemes: !!result.themes,
+                    resultKeys: Object.keys(result || {}),
+                    firstHashtag: result.hashtags?.[0]?.tag || 'none',
+                    resultType: typeof result
+                }, null, 2));
+                
+                if (result.hashtags && Array.isArray(result.hashtags)) {
+                    console.log(`➕ Adding ${result.hashtags.length} hashtags from result ${index}`);
+                    combinedHashtags.push(...result.hashtags);
+                } else {
+                    console.log(`⚠️ Result ${index} has no valid hashtags:`, typeof result.hashtags);
+                }
+                
+                if (result.themes && Array.isArray(result.themes)) {
+                    console.log(`➕ Adding ${result.themes.length} themes from result ${index}`);
+                    combinedThemes.push(...result.themes);
+                } else {
+                    console.log(`⚠️ Result ${index} has no valid themes:`, typeof result.themes);
+                }
             });
 
             console.log(`📊 Final results: ${combinedHashtags.length} hashtags, ${combinedThemes.length} themes`);
@@ -234,13 +254,30 @@ class RealSocialMediaAPI {
             }
         }
 
-        const processedHashtags = await this.analyzeRedditData(hashtags);
-        console.log(`Fetched ${processedHashtags.length} Reddit trends`);
+        console.log(`🔍 Raw Reddit hashtags collected: ${hashtags.length}`);
+        console.log(`📝 Sample hashtags:`, hashtags.slice(0, 3).map(h => ({ tag: h.tag, engagement: h.engagement })));
         
-        return {
+        console.log(`🤖 Starting AI analysis for ${hashtags.length} Reddit hashtags...`);
+        const processedHashtags = await this.analyzeRedditData(hashtags);
+        console.log(`✅ AI analysis complete: ${processedHashtags.length} processed hashtags`);
+        
+        const themes = this.extractThemes(processedHashtags, 'reddit');
+        console.log(`📊 Extracted ${themes.length} themes from Reddit data`);
+        
+        const result = {
             hashtags: processedHashtags,
-            themes: this.extractThemes(processedHashtags, 'reddit')
+            themes: themes
         };
+        
+        console.log(`🎯 Reddit final result:`, JSON.stringify({
+            hashtagCount: result.hashtags.length,
+            themeCount: result.themes.length,
+            hasHashtags: Array.isArray(result.hashtags),
+            hasThemes: Array.isArray(result.themes),
+            firstHashtag: result.hashtags[0]?.tag || 'none'
+        }, null, 2));
+        
+        return result;
     }
 
     async fetchHackerNewsTrends() {
@@ -451,30 +488,51 @@ class RealSocialMediaAPI {
     }
 
     async analyzeRedditData(hashtags) {
+        console.log(`🔍 Starting analyzeRedditData with ${hashtags.length} input hashtags`);
+        
         const uniqueHashtags = this.consolidateHashtags(hashtags);
-        console.log(`🚀 Generating AI context for ${uniqueHashtags.length} Reddit hashtags...`);
+        console.log(`🎯 After consolidation: ${uniqueHashtags.length} unique hashtags`);
+        console.log(`📝 Sample unique hashtags:`, uniqueHashtags.slice(0, 3).map(h => ({ tag: h.tag, engagement: h.engagement })));
 
         if (!process.env.GROQ_API_KEY) {
+            console.error('❌ GROQ_API_KEY environment variable is missing!');
             throw new Error('GROQ_API_KEY environment variable is required for AI analysis');
         }
+        console.log('✅ GROQ_API_KEY is available');
 
         const aiContextService = new AIContextService();
-        const hashtagPromises = uniqueHashtags.map(async (hashtag) => {
-            console.log(`🤖 Analyzing Reddit hashtag: #${hashtag.tag}`);
+        console.log(`🤖 Starting AI analysis for ${uniqueHashtags.length} hashtags...`);
+        
+        const hashtagPromises = uniqueHashtags.map(async (hashtag, index) => {
+            console.log(`🤖 [${index + 1}/${uniqueHashtags.length}] Analyzing Reddit hashtag: #${hashtag.tag}`);
             
-            const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Reddit');
-            console.log(`✅ AI context received for #${hashtag.tag}`);
-            
-            return {
-                ...hashtag,
-                context: aiAnalysis.context,
-                usage: aiAnalysis.usage,
-                description: aiAnalysis.description
-            };
+            try {
+                const aiAnalysis = await aiContextService.analyzeHashtagWithRealAI(hashtag.tag, 'Reddit');
+                console.log(`✅ [${index + 1}/${uniqueHashtags.length}] AI context received for #${hashtag.tag}`);
+                
+                return {
+                    ...hashtag,
+                    context: aiAnalysis.context,
+                    usage: aiAnalysis.usage,
+                    description: aiAnalysis.description
+                };
+            } catch (error) {
+                console.error(`❌ [${index + 1}/${uniqueHashtags.length}] AI analysis failed for #${hashtag.tag}:`, error.message);
+                throw error; // Re-throw to fail fast as requested
+            }
         });
 
+        console.log(`⏳ Waiting for ${hashtagPromises.length} AI analysis promises...`);
         const results = await Promise.all(hashtagPromises);
-        console.log(`✅ Processed ${results.length} Reddit hashtags with AI analysis`);
+        console.log(`✅ AI analysis complete: ${results.length} Reddit hashtags processed successfully`);
+        console.log(`📊 Sample processed hashtag:`, {
+            tag: results[0]?.tag,
+            engagement: results[0]?.engagement,
+            hasContext: !!results[0]?.context,
+            hasUsage: !!results[0]?.usage,
+            hasDescription: !!results[0]?.description
+        });
+        
         return results;
     }
 
@@ -636,14 +694,32 @@ module.exports = async function handler(req, res) {
                 : ['reddit', 'hackernews'];
         }
 
+        console.log(`🎯 API Handler: Analyzing trends for platforms: ${JSON.stringify(selectedPlatforms)}`);
+        
         const api = new RealSocialMediaAPI();
         const trends = await api.getTrendsForPlatforms(selectedPlatforms);
+        
+        console.log(`🔍 API Handler: Trends analysis complete`);
+        console.log(`📊 API Handler Final Response:`, JSON.stringify({
+            success: true,
+            hashtagCount: trends.hashtags?.length || 0,
+            themeCount: trends.themes?.length || 0,
+            totalEngagement: trends.totalEngagement,
+            platformCount: trends.platformCount,
+            hasHashtags: Array.isArray(trends.hashtags),
+            hasThemes: Array.isArray(trends.themes),
+            firstHashtag: trends.hashtags?.[0]?.tag || 'none',
+            firstTheme: trends.themes?.[0] || 'none'
+        }, null, 2));
 
-        res.status(200).json({
+        const response = {
             success: true,
             trends: trends,
             timestamp: new Date().toISOString()
-        });
+        };
+        
+        console.log(`📤 API Handler: Sending response with ${response.trends.hashtags?.length || 0} hashtags`);
+        res.status(200).json(response);
     } catch (error) {
         console.error('API Error:', error);
         res.status(500).json({ 
