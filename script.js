@@ -148,7 +148,7 @@ class SocialTrendAI {
                     businessName,
                     businessType,
                     tone,
-                    trends: selectedTrends,
+                    selectedTrends: selectedTrends,
                 }),
             });
 
